@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>大观园人文叙事GIS · 曹雪芹原著游记</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        :root {
+            --bg: #1a1a1f;
+            --panel-bg: #1e1e26;
+            --panel-bg-secondary: #252530;
+            --text: #e0d5c1;
+            --text-secondary: #b0a590;
+            --gold: #d4a853;
+            --gold-light: #f0d078;
+            --accent-red: #c74b3a;
+            --border: #3a3530;
+            --sidebar-width: 380px;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            --font-cn: 'Noto Serif SC', 'STSong', 'Songti SC', 'SimSun', serif;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            background: var(--bg);
+            font-family: var(--font-cn);
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden;
+            display: flex;
+            user-select: none;
+        }
+        .sidebar {
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: var(--panel-bg);
+            display: flex;
+            flex-direction: column;
+            z-index: 1000;
+            border-right: 1px solid var(--border);
+            flex-shrink: 0;
+            position: relative;
+            transition: all var(--transition);
+        }
+        .sidebar-header {
+            padding: 20px 24px 14px;
+            border-bottom: 1px solid var(--border);
+            text-align: center;
+        }
+        .title-main {
+            font-size: 1.6em;
+            color: var(--gold);
+            letter-spacing: 0.08em;
+            text-shadow: 0 2px 12px rgba(212, 168, 83, 0.3);
+        }
+        .title-sub {
+            font-size: 0.8em;
+            color: var(--text-secondary);
+            letter-spacing: 0.06em;
+            margin-top: 4px;
+            font-style: italic;
+        }
+        .progress-bar-wrap {
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+            background: var(--panel-bg-secondary);
+        }
+        .progress-bar-outer {
+            height: 6px;
+            background: #2a2a35;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar-inner {
+            height: 100%;
+            background: linear-gradient(90deg, #d4a853, #f0d078, #c74b3a);
+            border-radius: 3px;
+            transition: width 0.25s ease;
+            width: 0%;
+        }
+        .progress-label {
+            font-size: 0.7em;
+            color: var(--text-secondary);
+            text-align: right;
+            margin-top: 5px;
+        }
+        .sidebar-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 0;
+            scroll-behavior: smooth;
+        }
+        .location-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            cursor: pointer;
+            border-left: 3px solid transparent;
+            transition: all var(--transition);
+            gap: 12px;
+            margin: 2px 8px;
+        }
+        .location-item.active {
+            background: rgba(212, 168, 83, 0.1);
+            border-left-color: var(--gold);
+        }
+        .location-item.active .loc-index {
+            background: var(--gold);
+            color: #1a1a1f;
+            transform: scale(1.1);
+        }
+        .loc-index {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #2a2a35;
+            color: #999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .loc-info {
+            flex: 1;
+            min-width: 0;
+        }
+        .loc-name {
+            font-size: 0.95em;
+            color: #e0d5c1;
+            font-weight: 600;
+        }
+        .loc-event {
+            font-size: 0.75em;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .loc-emotion {
+            font-size: 0.7em;
+            color: #c97d6d;
+            margin-top: 2px;
+            font-style: italic;
+        }
+        .social-panel {
+            height: 120px;
+            background: var(--panel-bg-secondary);
+            border-top: 1px solid var(--border);
+            padding: 8px 14px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+        .social-header {
+            font-size: 0.7em;
+            color: #f0d078;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .social-item {
+            font-size: 0.75em;
+            color: #e0d5c1;
+            padding: 4px 0;
+            border-bottom: 1px dashed #2a2a35;
+            line-height: 1.4;
+        }
+        .social-item .sc-user {
+            color: #ffb85a;
+            font-weight: bold;
+        }
+        .social-item .sc-like {
+            color: #c97d6d;
+            float: right;
+        }
+        .map-container {
+            flex: 1;
+            height: 100vh;
+            position: relative;
+            z-index: 1;
+        }
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #1a1a1f;
+        }
+        .control-panel {
+            position: absolute;
+            bottom: 28px;
+            right: 28px;
+            z-index: 1001;
+            display: flex;
+            gap: 8px;
+            background: var(--panel-bg);
+            padding: 8px 12px;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        .btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            background: var(--panel-bg-secondary);
+            color: #e0d5c1;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition);
+            font-size: 1rem;
+        }
+        .btn:hover {
+            border-color: var(--gold);
+            color: var(--gold-light);
+            box-shadow: 0 0 20px rgba(212, 168, 83, 0.3);
+        }
+        .btn.btn-play {
+            background: var(--accent-red);
+            border-color: var(--accent-red);
+            color: #fff;
+            width: 46px;
+            height: 46px;
+            font-size: 1.2rem;
+        }
+        .btn.btn-play.playing {
+            background: #5a8a6a;
+        }
+        .btn.active {
+            border-color: var(--gold);
+            color: var(--gold-light);
+            box-shadow: 0 0 14px rgba(212, 168, 83, 0.5);
+        }
+        .pulse-dot div {
+            width: 20px;
+            height: 20px;
+            background: #ff3b2f;
+            border-radius: 50%;
+            box-shadow: 0 0 20px #ff3b2f;
+            border: 2px solid #fff;
+            animation: pulse 1.2s infinite;
+        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.4);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        .custom-marker div {
+            transition: 0.2s;
+        }
+        .custom-marker div:hover {
+            transform: scale(1.3);
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100vw;
+                max-height: 45vh;
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                z-index: 1002;
+                border-radius: 20px 20px 0 0;
+                border-top: 1px solid var(--border);
+            }
+            .sidebar-list {
+                display: flex;
+                overflow-x: auto;
+                padding: 6px 4px;
+                flex: none;
+                height: auto;
+                max-height: 200px;
+            }
+            .location-item {
+                flex-direction: column;
+                align-items: center;
+                min-width: 60px;
+                padding: 8px 4px;
+                border-left: none;
+                border-bottom: 2px solid transparent;
+            }
+            .loc-event,
+            .loc-emotion {
+                display: none;
+            }
+            .social-panel {
+                display: none;
+            }
+            .control-panel {
+                bottom: 160px;
+                right: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <div class="title-main" id="titleMain">大观园 · 原著名场面</div>
+            <div class="title-sub" id="titleSub">跟着曹雪芹游大观园</div>
+        </div>
+        <div class="progress-bar-wrap">
+            <div class="progress-bar-outer"><div class="progress-bar-inner" id="progressBar"></div></div>
+            <div class="progress-label" id="progressLabel">游览进度 · 准备启程</div>
+        </div>
+        <div class="sidebar-list" id="sidebarList"></div>
+        <div class="social-panel">
+            <div class="social-header"><span>📱 大观园朋友圈</span><span id="socialLike">❤️ 0</span></div>
+            <div id="socialContent" style="flex:1; overflow-y:auto; font-size:0.7em; color:#b0a590;">
+                <div class="social-item">欢迎来到大观园，点击【播放】开始...</div>
+            </div>
+        </div>
+    </div>
+    <div class="map-container">
+        <div id="map"></div>
+        <div class="control-panel">
+            <button class="btn" id="btnMusic" title="音乐开关">🔇</button>
+            <button class="btn" id="btnView" title="驾驶视角">🚗</button>
+            <button class="btn" id="btnLang" title="中英切换">🌐</button>
+            <button class="btn" id="btnReset" title="重置">⟳</button>
+            <button class="btn btn-play playing" id="btnPlay" title="播放/暂停"><span id="playIcon">⏸</span></button>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+    <script>
+        (function() {
+            // ==================== 双语数据定义 ====================
+            const locationBase = [{
+                id: 0,
+                nameZH: '大观园正门',
+                nameEN: 'Main Gate',
+                eventZH: '元妃省亲启程',
+                eventEN: 'Imperial Consort Yuan arrives',
+                emotionZH: '贾府烈火烹油之盛',
+                emotionEN: 'The Jia family at its zenith',
+                excerptZH: '金门玉户神仙府，桂殿兰宫妃子家。',
+                excerptEN: '"Golden gates and jade doors — a dwelling of immortals; Cinnamon halls and orchid palaces — home to an imperial consort."',
+                color: '#d4a853',
+                lng: 116.355615,
+                lat: 39.870049
+            }, {
+                id: 1,
+                nameZH: '怡红院',
+                nameEN: 'Yihong Court',
+                eventZH: '宝玉题匾·怡红快绿',
+                eventEN: 'Baoyu inscribes the plaque',
+                emotionZH: '繁华初开的青春',
+                emotionEN: 'Youthful splendor in bloom',
+                excerptZH: '怡红院中，蕉棠两植，其势若伞，丝垂翠缕，葩吐丹砂。',
+                excerptEN: '"In Yihong Court, plantains and crabapples stand like umbrellas, trailing emerald threads and bursting with crimson petals."',
+                color: '#e85d3a',
+                lng: 116.354762,
+                lat: 39.870680
+            }, {
+                id: 2,
+                nameZH: '潇湘馆',
+                nameEN: 'Xiaoxiang Pavilion',
+                eventZH: '黛玉葬花',
+                eventEN: 'Daiyu buries the fallen flowers',
+                emotionZH: '花谢花飞花满天，红消香断有谁怜',
+                emotionEN: 'Flowers fade and fly, who pities their crimson fall?',
+                excerptZH: '凤尾森森，龙吟细细，黛玉独立花冢前，悲悼落花。',
+                excerptEN: '"Amidst the dense bamboo groves, Daiyu stands before the flower grave, mourning the fallen petals."',
+                color: '#d98fa8',
+                lng: 116.355987,
+                lat: 39.870788
+            }, {
+                id: 3,
+                nameZH: '栊翠庵',
+                nameEN: 'Longcui Nunnery',
+                eventZH: '妙玉奉茶',
+                eventEN: 'Miaoyu serves tea',
+                emotionZH: '洁癖与孤高，红梅映雪',
+                emotionEN: 'Aloof purity, red plum blossoms against snow',
+                excerptZH: '栊翠庵内，红梅映雪，妙玉用五年前梅花雪水烹茶。',
+                excerptEN: '"Inside the nunnery, red plum blossoms mirror the snow; Miaoyu brews tea with snow water saved for five years."',
+                color: '#5bafb8',
+                lng: 116.354841,
+                lat: 39.871667
+            }, {
+                id: 4,
+                nameZH: '稻香村',
+                nameEN: 'Daoxiang Village',
+                eventZH: '刘姥姥游园宴席',
+                eventEN: 'Granny Liu joins the feast',
+                emotionZH: '世俗欢乐与强撑的体面',
+                emotionEN: 'Earthy joy and strained dignity',
+                excerptZH: '“老刘老刘，食量大如牛，吃个老母猪不抬头。”',
+                excerptEN: '"Old Liu, old Liu, with an appetite big as an ox, eats a whole sow without looking up."',
+                color: '#e8993a',
+                lng: 116.357564,
+                lat: 39.871275
+            }, {
+                id: 5,
+                nameZH: '蘅芜苑',
+                nameEN: 'Hengwu Garden',
+                eventZH: '宝钗扑蝶',
+                eventEN: 'Baochai chases butterflies',
+                emotionZH: '少女的灵动与娴静',
+                emotionEN: 'A maiden’s grace and liveliness',
+                excerptZH: '滴翠亭外，宝钗蹑手蹑脚，去扑那一双玉色蝴蝶。',
+                excerptEN: '"Outside the Pavilion of Emerald Green, Baochai tiptoes to catch a pair of jade-colored butterflies."',
+                color: '#6aaf6a',
+                lng: 116.357694,
+                lat: 39.872527
+            }, {
+                id: 6,
+                nameZH: '省亲别墅牌坊',
+                nameEN: 'Imperial Visitation Arch',
+                eventZH: '元春省亲皇家仪仗',
+                eventEN: 'Imperial procession of Yuanchun',
+                emotionZH: '家族荣耀的顶点',
+                emotionEN: 'The pinnacle of family glory',
+                excerptZH: '金门玉户，一别经年，元春含泪道：“田舍之家，虽齑盐布帛，终能聚天伦之乐。”',
+                excerptEN: '"Golden gates, jade doors — after years apart, Yuanchun tearfully says: \'A humble farmhouse, though simple, still enjoys the joy of family.\'"',
+                color: '#9b5fc0',
+                lng: 116.356106,
+                lat: 39.872241
+            }, {
+                id: 7,
+                nameZH: '大观楼',
+                nameEN: 'Grand View Tower',
+                eventZH: '盛极而衰',
+                eventEN: 'From glory to ruin',
+                emotionZH: '白茫茫大地真干净',
+                emotionEN: 'A vast expanse of white, utterly empty',
+                excerptZH: '忽喇喇似大厦倾，昏惨惨似灯将尽。一场欢喜忽悲辛。',
+                excerptEN: '"Crashing down like a great mansion falling, dimming like a lamp about to expire — joy turns abruptly to sorrow."',
+                color: '#7a8a95',
+                lng: 116.355983,
+                lat: 39.872987
+            }];
+
+            // 社交数据（双语）
+            const socialBase = [
+                { id: 0, userZH: '@读红人', userEN: '@RedChamberFan', textZH: '正门牌匾真是皇家气派！元春省亲这一幕真是泪目。',
+                    textEN: 'The gate plaques are truly imperial! Yuanchun’s visit brings tears.', likes: 328 },
+                { id: 1, userZH: '@金陵十二钗', userEN: '@TwelveBeauties', textZH: '怡红院的芭蕉和海棠，就像宝玉的性格，热烈又纯净。',
+                    textEN: 'The plantains and crabapples mirror Baoyu’s passionate yet pure nature.', likes: 512 },
+                { id: 2, userZH: '@潇湘妃子', userEN: '@RiverQueen', textZH: '“花谢花飞花满天”，黛玉独自葬花，意境太悲了。',
+                    textEN: '"Flowers fade and fly" — Daiyu burying flowers alone is heartbreaking.', likes: 1144 },
+                { id: 3, userZH: '@槛外人', userEN: '@OutsiderMiao', textZH: '妙玉用雪水泡茶，那红梅我到现在还记得。',
+                    textEN: 'Miaoyu’s snow-water tea and the red plum blossoms are unforgettable.', likes: 289 },
+                { id: 4, userZH: '@大观园', userEN: '@GrandViewGarden', textZH: '刘姥姥那句“食量大如牛”，一开口就赢了全场！',
+                    textEN: 'Granny Liu’s "appetite big as an ox" stole the show!', likes: 166 },
+                { id: 5, userZH: '@蝴蝶迷', userEN: '@ButterflyFan', textZH: '宝钗扑蝶那一瞬间，少女的娇憨全出来了。',
+                    textEN: 'Baochai chasing butterflies reveals her pure girlish charm.', likes: 403 },
+                { id: 6, userZH: '@元春粉', userEN: '@YuanchunStan', textZH: '“田舍之家，虽齑盐布帛”，元春这句话让人心酸，顶峰之后的回望。',
+                    textEN: '"A humble farmhouse..." — Yuanchun’s words are so poignant, looking back from the peak.',
+                likes: 777 },
+                { id: 7, userZH: '@悲剧美学', userEN: '@TragedyLover', textZH: '最后的大观楼，“白茫茫大地真干净”，读完只剩下叹息。',
+                    textEN: 'The final tower — "a vast expanse of white" leaves only a sigh.', likes: 1034 }
+            ];
+
+            let currentLang = 'zh'; // 'zh' 或 'en'
+
+            // 辅助获取当前语言的值
+            function t(obj, fieldZH, fieldEN) {
+                return currentLang === 'zh' ? obj[fieldZH] : obj[fieldEN];
+            }
+
+            function getLocName(loc) { return t(loc, 'nameZH', 'nameEN'); }
+
+            function getLocEvent(loc) { return t(loc, 'eventZH', 'eventEN'); }
+
+            function getLocEmotion(loc) { return t(loc, 'emotionZH', 'emotionEN'); }
+
+            function getLocExcerpt(loc) { return t(loc, 'excerptZH', 'excerptEN'); }
+
+            function getSocialUser(s) { return t(s, 'userZH', 'userEN'); }
+
+            function getSocialText(s) { return t(s, 'textZH', 'textEN'); }
+
+            // 构建 locations 数组（包含 latlng）
+            const locations = locationBase.map(loc => ({
+                ...loc,
+                latlng: [loc.lat, loc.lng]
+            }));
+
+            // ==================== 状态变量 ====================
+            let isPlaying = true;
+            let isMusicOn = false;
+            let isFollowView = false;
+            let pauseRemaining = 3000; // 节点暂停剩余时间(ms)
+            let moveProgress = 0; // 当前线段进度 0-1
+            let currentNode = 0; // 当前所在节点索引
+            let phase = 'paused_at_node'; // 'paused_at_node' | 'moving' | 'finished'
+            let lastTimestamp = null;
+
+            // ==================== 初始化地图 ====================
+            const map = L.map('map', {
+                center: [39.87155, 116.3562],
+                zoom: 17,
+                zoomControl: true
+            });
+
+            L.tileLayer(
+                'https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=7&x={x}&y={y}&z={z}', {
+                    maxZoom: 20,
+                    attribution: '高德地图 | 大观园人文叙事'
+                }).addTo(map);
+
+            // 创建节点标记
+            const markerRefs = {};
+            locations.forEach((loc, i) => {
+                const icon = L.divIcon({
+                    className: 'custom-marker',
+                    html: `<div style="background:${loc.color};width:20px;height:20px;border-radius:50%;border:2px solid #fff;"></div>`,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+                const marker = L.marker(loc.latlng, { icon }).addTo(map);
+                marker.bindPopup(() => {
+                    return `
+                        <div style="max-width:240px;">
+                            <strong style="color:#f0d078;">${getLocName(loc)}</strong><br>
+                            <span style="color:#e0d5c1;font-size:0.9em;">📍 ${getLocEvent(loc)}</span><br>
+                            <span style="display:block;margin:6px 0;color:#d98fa8;font-style:italic;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:4px;">“${getLocExcerpt(loc)}”</span>
+                            <span style="color:#b0a590;font-size:0.8em;">🎭 ${getLocEmotion(loc)}</span>
+                        </div>
+                    `;
+                }, { maxWidth: 260 });
+                marker.on('click', () => highlightSidebar(i));
+                markerRefs[i] = marker;
+            });
+
+            // 路径线
+            const pathCoords = locations.map(l => l.latlng);
+            L.polyline(pathCoords, {
+                color: '#5a5040',
+                weight: 3,
+                dashArray: '8, 12',
+                opacity: 0.6
+            }).addTo(map);
+
+            const traveledPath = L.polyline([pathCoords[0]], {
+                color: '#f0d078',
+                weight: 4,
+                opacity: 0.9
+            }).addTo(map);
+
+            // 移动红点
+            const movingDot = L.marker(pathCoords[0], {
+                icon: L.divIcon({
+                    className: 'pulse-dot',
+                    html: '<div></div>',
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
+                }),
+                zIndexOffset: 1000
+            }).addTo(map);
+
+            // ==================== UI 元素 ====================
+            const progressBar = document.getElementById('progressBar');
+            const progressLabel = document.getElementById('progressLabel');
+            const sidebarList = document.getElementById('sidebarList');
+            const socialContent = document.getElementById('socialContent');
+            const socialLike = document.getElementById('socialLike');
+            const playIcon = document.getElementById('playIcon');
+            const btnPlay = document.getElementById('btnPlay');
+            const btnReset = document.getElementById('btnReset');
+            const btnMusic = document.getElementById('btnMusic');
+            const btnView = document.getElementById('btnView');
+            const btnLang = document.getElementById('btnLang');
+            const titleMain = document.getElementById('titleMain');
+            const titleSub = document.getElementById('titleSub');
+
+            // 构建侧边栏列表
+            const locationItems = [];
+
+            function buildSidebar() {
+                sidebarList.innerHTML = '';
+                locationItems.length = 0;
+                locations.forEach((loc, i) => {
+                    const item = document.createElement('div');
+                    item.className = 'location-item';
+                    item.innerHTML = `
+                        <div class="loc-index">${i+1}</div>
+                        <div class="loc-info">
+                            <div class="loc-name">${getLocName(loc)}</div>
+                            <div class="loc-event">${getLocEvent(loc)}</div>
+                            <div class="loc-emotion">${getLocEmotion(loc)}</div>
+                        </div>
+                    `;
+                    item.addEventListener('click', () => {
+                        map.flyTo(loc.latlng, 18);
+                        openMarker(i);
+                        highlightSidebar(i);
+                    });
+                    sidebarList.appendChild(item);
+                    locationItems.push(item);
+                });
+            }
+
+            function highlightSidebar(id) {
+                locationItems.forEach((item, i) => item.classList.toggle('active', i === id));
+            }
+
+            function openMarker(id) {
+                map.closePopup();
+                if (markerRefs[id]) markerRefs[id].openPopup();
+            }
+
+            function updateProgress(id) {
+                const pct = Math.round(id / (locations.length - 1) * 100);
+                progressBar.style.width = pct + '%';
+                if (id === 0) progressLabel.textContent = currentLang === 'zh' ? '进度 · 启程' :
+                    'Progress · Departure';
+                else if (id === locations.length - 1) progressLabel.textContent = currentLang === 'zh' ? '进度 · 终局' :
+                    'Progress · Finale';
+                else progressLabel.textContent = (currentLang === 'zh' ? `进度 · ${id+1}/${locations.length}` :
+                    `Progress · ${id+1}/${locations.length}`);
+            }
+
+            function updateSocial(id) {
+                const data = socialBase.find(d => d.id === id);
+                if (!data) return;
+                socialContent.innerHTML = `
+                    <div class="social-item">
+                        <span class="sc-user">${getSocialUser(data)}</span>
+                        <span class="sc-like">❤️ ${data.likes}</span><br>
+                        ${getSocialText(data)}
+                    </div>`;
+                socialLike.innerHTML = `❤️ ${data.likes}`;
+            }
+
+            function refreshAllTexts() {
+                // 更新标题
+                titleMain.textContent = currentLang === 'zh' ? '大观园 · 原著名场面' : 'Grand View Garden · Iconic Scenes';
+                titleSub.textContent = currentLang === 'zh' ? '跟着曹雪芹游大观园' :
+                    'A literary tour with Cao Xueqin';
+                // 更新侧边栏
+                buildSidebar();
+                highlightSidebar(currentNode);
+                // 更新进度标签
+                updateProgress(currentNode);
+                // 更新社交面板
+                updateSocial(currentNode);
+                // 更新所有弹窗（重新绑定）
+                Object.values(markerRefs).forEach(m => m.unbindPopup());
+                locations.forEach((loc, i) => {
+                    markerRefs[i].bindPopup(() => {
+                        return `
+                            <div style="max-width:240px;">
+                                <strong style="color:#f0d078;">${getLocName(loc)}</strong><br>
+                                <span style="color:#e0d5c1;font-size:0.9em;">📍 ${getLocEvent(loc)}</span><br>
+                                <span style="display:block;margin:6px 0;color:#d98fa8;font-style:italic;background:rgba(255,255,255,0.05);padding:4px 8px;border-radius:4px;">“${getLocExcerpt(loc)}”</span>
+                                <span style="color:#b0a590;font-size:0.8em;">🎭 ${getLocEmotion(loc)}</span>
+                            </div>
+                        `;
+                    }, { maxWidth: 260 });
+                });
+                // 如果当前有打开的弹窗，重新打开
+                if (phase === 'paused_at_node' || phase === 'finished') {
+                    openMarker(currentNode);
+                }
+            }
+
+            // ==================== 动画循环 ====================
+            function animationLoop(timestamp) {
+                if (!isPlaying) {
+                    lastTimestamp = null;
+                    requestAnimationFrame(animationLoop);
+                    return;
+                }
+                let dt = lastTimestamp ? Math.min(timestamp - lastTimestamp, 100) : 16;
+                lastTimestamp = timestamp;
+
+                if (phase === 'paused_at_node') {
+                    pauseRemaining -= dt;
+                    if (pauseRemaining <= 0 && currentNode < locations.length - 1) {
+                        phase = 'moving';
+                        moveProgress = 0;
+                        map.closePopup();
+                    } else if (pauseRemaining <= 0 && currentNode === locations.length - 1) {
+                        phase = 'finished';
+                        isPlaying = false;
+                        playIcon.textContent = '▶';
+                        btnPlay.classList.remove('playing');
+                        openMarker(currentNode);
+                    }
+                    updateProgress(currentNode);
+                    highlightSidebar(currentNode);
+                } else if (phase === 'moving') {
+                    moveProgress += dt / 2000; // 2秒走完一段
+                    if (moveProgress >= 1) {
+                        moveProgress = 1;
+                        currentNode++;
+                        movingDot.setLatLng(locations[currentNode].latlng);
+                        traveledPath.setLatLngs(locations.slice(0, currentNode + 1).map(l => l.latlng));
+                        pauseRemaining = 3000;
+                        phase = 'paused_at_node';
+                        moveProgress = 0;
+                        openMarker(currentNode);
+                        map.flyTo(locations[currentNode].latlng, 17.5, { duration: 0.6 });
+                        updateSocial(currentNode);
+                        updateProgress(currentNode);
+                    } else {
+                        const from = locations[currentNode].latlng;
+                        const to = locations[currentNode + 1].latlng;
+                        const t = moveProgress < 0.5 ?
+                            2 * moveProgress * moveProgress :
+                            1 - Math.pow(-2 * moveProgress + 2, 2) / 2;
+                        const interp = [
+                            from[0] + (to[0] - from[0]) * t,
+                            from[1] + (to[1] - from[1]) * t
+                        ];
+                        movingDot.setLatLng(interp);
+                        const traveled = locations.slice(0, currentNode + 1).map(l => l.latlng);
+                        traveled.push(interp);
+                        traveledPath.setLatLngs(traveled);
+                        if (isFollowView) map.panTo(interp, { animate: true, duration: 0.2 });
+                    }
+                } else if (phase === 'finished') {
+                    // 已结束，不再移动
+                }
+                requestAnimationFrame(animationLoop);
+            }
+
+            function resetAll() {
+                currentNode = 0;
+                phase = 'paused_at_node';
+                pauseRemaining = 3000;
+                isPlaying = true;
+                lastTimestamp = null;
+                playIcon.textContent = '⏸';
+                btnPlay.classList.add('playing');
+                moveProgress = 0;
+                movingDot.setLatLng(locations[0].latlng);
+                traveledPath.setLatLngs([locations[0].latlng]);
+                map.flyTo(locations[0].latlng, 17.5);
+                openMarker(0);
+                updateSocial(0);
+                highlightSidebar(0);
+                updateProgress(0);
+                map.closePopup();
+                openMarker(0);
+            }
+
+            // ==================== 事件绑定 ====================
+            btnPlay.addEventListener('click', () => {
+                if (phase === 'finished') {
+                    resetAll();
+                    return;
+                }
+                isPlaying = !isPlaying;
+                playIcon.textContent = isPlaying ? '⏸' : '▶';
+                if (isPlaying) {
+                    btnPlay.classList.add('playing');
+                    lastTimestamp = null;
+                } else {
+                    btnPlay.classList.remove('playing');
+                }
+            });
+
+            btnReset.addEventListener('click', resetAll);
+
+            btnMusic.addEventListener('click', () => {
+                isMusicOn = !isMusicOn;
+                btnMusic.textContent = isMusicOn ? '🔊' : '🔇';
+                btnMusic.classList.toggle('active', isMusicOn);
+                if (isMusicOn) {
+                    // 使用 Web Audio API 生成简单的背景音（避免文件依赖）
+                    if (!window._musicCtx) {
+                        try {
+                            window._musicCtx = new(window.AudioContext || window.webkitAudioContext)();
+                            const gainNode = window._musicCtx.createGain();
+                            gainNode.gain.value = 0.08;
+                            gainNode.connect(window._musicCtx.destination);
+                            window._musicGain = gainNode;
+
+                            function playNote() {
+                                if (!isMusicOn || !window._musicCtx) return;
+                                const osc = window._musicCtx.createOscillator();
+                                const noteGain = window._musicCtx.createGain();
+                                const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00, 392.00, 329.63, 293.66];
+                                const freq = pentatonic[Math.floor(Math.random() * pentatonic.length)];
+                                osc.type = 'triangle';
+                                osc.frequency.value = freq;
+                                noteGain.gain.setValueAtTime(0, window._musicCtx.currentTime);
+                                noteGain.gain.linearRampToValueAtTime(0.08, window._musicCtx.currentTime + 0.2);
+                                noteGain.gain.linearRampToValueAtTime(0, window._musicCtx.currentTime + 1.8);
+                                osc.connect(noteGain);
+                                noteGain.connect(gainNode);
+                                osc.start();
+                                osc.stop(window._musicCtx.currentTime + 2);
+                            }
+                            window._musicInterval = setInterval(playNote, 2000);
+                        } catch (e) {
+                            console.warn('Web Audio not supported');
+                        }
+                    } else if (window._musicCtx.state === 'suspended') {
+                        window._musicCtx.resume();
+                    }
+                } else {
+                    if (window._musicInterval) {
+                        clearInterval(window._musicInterval);
+                        window._musicInterval = null;
+                    }
+                }
+            });
+
+            btnView.addEventListener('click', () => {
+                isFollowView = !isFollowView;
+                btnView.classList.toggle('active', isFollowView);
+                if (isFollowView) {
+                    const pos = movingDot.getLatLng();
+                    map.panTo(pos);
+                }
+            });
+
+            btnLang.addEventListener('click', () => {
+                currentLang = currentLang === 'zh' ? 'en' : 'zh';
+                btnLang.textContent = currentLang === 'zh' ? '🌐' : '🌐';
+                btnLang.classList.toggle('active', currentLang === 'en');
+                refreshAllTexts();
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === ' ') {
+                    e.preventDefault();
+                    btnPlay.click();
+                }
+            });
+
+            // ==================== 启动 ====================
+            buildSidebar();
+            updateSocial(0);
+            updateProgress(0);
+            openMarker(0);
+            highlightSidebar(0);
+            map.fitBounds(L.latLngBounds(locations.map(l => l.latlng)).pad(0.3));
+            animationLoop();
+            console.log('🏯 大观园叙事已开启 | 双语切换已就绪');
+        })();
+    </script>
+</body>
+</html>

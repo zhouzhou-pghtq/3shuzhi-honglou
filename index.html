@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字人文项目集 - 红楼梦视界</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        /* 基设与暗黑主题 */
+        :root { --gold: #d4a853; --bg-dark: #121215; --bg-card: #1c1c24; --text-main: #e0d5c1; }
+        * { box-sizing: border-box; margin: 0; padding: 0; scroll-behavior: smooth; }
+        body { background: var(--bg-dark); font-family: 'Georgia', 'SimSun', serif; color: var(--text-main); overflow-x: hidden; }
+        a { text-decoration: none; color: inherit; }
+
+        /* 顶部导航 */
+        header { position: sticky; top: 0; background: rgba(18, 18, 21, 0.9); backdrop-filter: blur(12px); padding: 15px 40px; display: flex; justify-content: space-between; align-items: center; z-index: 1000; border-bottom: 1px solid #333; }
+        header .logo { font-size: 1.4em; font-weight: bold; color: var(--gold); letter-spacing: 2px; }
+        nav ul { display: flex; list-style: none; gap: 25px; }
+        nav ul li a { transition: 0.3s; font-size: 0.9em; }
+        nav ul li a:hover { color: var(--gold); }
+
+        /* 英雄区与统一叙事 */
+        .hero { height: 70vh; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 20px; background: radial-gradient(circle at top, #2a1f1a 0%, var(--bg-dark) 70%); }
+        .hero h1 { font-size: 3.5em; letter-spacing: 4px; margin-bottom: 20px; }
+        .hero h1 span { color: var(--gold); }
+        .hero p { font-size: 1.2em; color: #b0a590; max-width: 700px; line-height: 1.8; }
+        .hero .highlight-tags { margin-top: 30px; display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        .hero .highlight-tags span { background: rgba(212, 168, 83, 0.15); border: 1px solid rgba(212, 168, 83, 0.3); padding: 6px 16px; border-radius: 20px; font-size: 0.8em; color: var(--gold); }
+
+        /* 板块布局 */
+        section { padding: 60px 5%; max-width: 1200px; margin: 0 auto; }
+        .section-title { font-size: 2.2em; margin-bottom: 40px; border-left: 5px solid var(--gold); padding-left: 20px; color: #fff; }
+        .section-title small { font-size: 0.5em; color: #888; display: block; margin-top: 8px; font-weight: normal; }
+
+        /* 成果展示嵌入区（最关键的 iframe） */
+        .iframe-wrapper { background: #111; border-radius: 12px; overflow: hidden; border: 1px solid #333; box-shadow: 0 10px 40px rgba(0,0,0,0.6); margin: 30px 0; }
+        .iframe-wrapper iframe { width: 100%; height: 600px; border: 0; display: block; }
+        .iframe-note { font-size: 0.8em; color: #666; text-align: right; padding: 10px; border-top: 1px solid #222; }
+
+        /* 项目计划板块 */
+        .plan-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .card { background: var(--bg-card); padding: 25px; border-radius: 10px; border: 1px solid #2a2a30; }
+        .card h3 { color: var(--gold); margin-bottom: 15px; font-size: 1.2em; }
+        .card ul { list-style: none; line-height: 2; font-size: 0.9em; color: #b0a590; }
+        .card ul li i { color: var(--gold); margin-right: 8px; }
+
+        /* 交互创新展示 */
+        .innovate-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-top: 30px; }
+        .innovate-item { background: var(--bg-card); padding: 20px; border-radius: 8px; border-left: 3px solid var(--gold); }
+        .innovate-item h4 { color: #fff; margin-bottom: 8px; }
+
+        @media (max-width: 768px) {
+            header { flex-direction: column; gap: 10px; padding: 10px 20px; }
+            nav ul { gap: 15px; }
+            .hero h1 { font-size: 2.5em; }
+            .iframe-wrapper iframe { height: 400px; }
+            .plan-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 导航 -->
+<header>
+    <div class="logo">📖 数智红楼</div>
+    <nav>
+        <ul>
+            <li><a href="#narrative">统一叙事</a></li>
+            <li><a href="#gis">空间导航</a></li>
+            <li><a href="#sna">人物网络</a></li>
+            <li><a href="#plan">项目计划</a></li>
+        </ul>
+    </nav>
+</header>
+
+<!-- 首页与统一叙事论点 -->
+<section class="hero" id="narrative">
+    <h1>从文本到 <span>数字</span> 空间</h1>
+    <p>以《红楼梦》为蓝本，将古典文学的宏大悲剧，转化为 <b>可交互的地理图谱</b> 与 <b>可量化的社交关系网</b>。通过“数智人文”的视角，让经典文本在当下获得新的生命力。</p>
+    <div class="highlight-tags">
+        <span>📍 空间叙事 GIS</span>
+        <span>🧑‍🤝‍🧑 社会网络分析</span>
+        <span>🤖 AI 大模型协作</span>
+        <span>🌐 中英双语对外传播</span>
+    </div>
+</section>
+
+<!-- 板块一：大观园 GIS 空间叙事 -->
+<section id="gis">
+    <h2 class="section-title">🏯 大观园 · 空间叙事 <small>以真实坐标还原元妃省亲至白茫茫大地</small></h2>
+    <div class="iframe-wrapper">
+        <!-- 将你之前的 大观园.html 嵌入这里 -->
+        <iframe src="大观园.html" scrolling="no"></iframe>
+        <div class="iframe-note">支持：播放/暂停动画 · 驾驶跟随视角 · 双语切换 · 打卡朋友圈</div>
+    </div>
+</section>
+
+<!-- 板块二：人物关系网络分析 -->
+<section id="sna">
+    <h2 class="section-title">🧑‍🤝‍🧑 红楼人物关系图谱 <small>社区发现与中心性量化计算 (Louvain算法)</small></h2>
+    <div class="iframe-wrapper">
+        <!-- 将你之前的 红楼梦_网络分析.html 嵌入这里 -->
+        <iframe src="红楼梦_网络分析.html" scrolling="no"></iframe>
+        <div class="iframe-note">支持：鼠标拖拽节点 · 力导向布局 · 派系分类</div>
+    </div>
+</section>
+
+<!-- 板块三：交互创新设计 -->
+<section>
+    <h2 class="section-title">💡 视觉与交互创新亮点</h2>
+    <div class="innovate-list">
+        <div class="innovate-item">
+            <h4>🚗 驾驶跟随视角</h4>
+            <p>游览动画开启后，地图视角平滑跟随红点轨迹，仿佛以第一人称沉浸式漫游大观园。</p>
+        </div>
+        <div class="innovate-item">
+            <h4>📱 大观园朋友圈</h4>
+            <p>每一个地标节点，均配有原著诗词与对应的“虚拟游客打卡评论”，增强社交情感沉浸。</p>
+        </div>
+        <div class="innovate-item">
+            <h4>🌐 讲好中国故事（双语版）</h4>
+            <p>一键切换中英文界面。所有叙事文本、地点名称、情感描述均实现全球化传播备选。</p>
+        </div>
+        <div class="innovate-item">
+            <h4>📊 Gephi 实训模拟</h4>
+            <p>网页直接内嵌力导向交互引擎，呈现 Gephi Force Atlas 2 布局的实时物理仿真。</p>
+        </div>
+    </div>
+</section>
+
+<!-- 板块四：项目总结与计划 -->
+<section id="plan">
+    <h2 class="section-title">🚀 项目计划与反思</h2>
+    <div class="plan-grid">
+        <div class="card">
+            <h3>🧠 创作反思与批判</h3>
+            <ul>
+                <li><i class="fas fa-check"></i> <b>数据校验：</b>大观园8处核心坐标全部由高德地图手动实测，剥离了AI的“坐标幻觉”。</li>
+                <li><i class="fas fa-check"></i> <b>代码修正：</b>处理了AI生成的JS双引号语法错误导致的白屏，替换了高德底图，解决海外源加载失败问题。</li>
+                <li><i class="fas fa-check"></i> <b>人文发现：</b>通过社会网络量化分析，验证了“王熙凤”作为链接主仆唯一“超级中介”的悲剧宿命。</li>
+            </ul>
+        </div>
+        <div class="card">
+            <h3>🗓️ 后续计划迭代</h3>
+            <ul>
+                <li><i class="fas fa-circle" style="font-size: 0.6em; vertical-align: middle;"></i> 引入Python NLP提取原著人物情感波动，为网络连线增加“情感张力”属性。</li>
+                <li><i class="fas fa-circle" style="font-size: 0.6em; vertical-align: middle;"></i> 将主页部署至Vercel或Gitee Pages，云端持续维护。</li>
+                <li><i class="fas fa-circle" style="font-size: 0.6em; vertical-align: middle;"></i> 逐步扩展支持《三国演义》或《悲惨世界》等更多经典。</li>
+            </ul>
+        </div>
+    </div>
+</section>
+
+<!-- 页脚 -->
+<footer style="text-align: center; padding: 30px; border-top: 1px solid #222; color: #555; margin-top: 40px;">
+    <p>© 2026 数智人文课程成果 · 基于大语言模型与地理信息技术的空间叙事研究</p>
+</footer>
+
+</body>
+</html>
